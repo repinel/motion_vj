@@ -1,0 +1,115 @@
+#!/usr/bin/env ruby
+
+require 'motion_vj'
+
+require 'dotenv'
+require 'fileutils'
+require 'optparse'
+
+class App
+  def self.parse!(argv)
+    options = {}
+    opt_parser = OptionParser.new do |opts|
+      opts.banner = 'Usage: motionvj [options]'
+
+      opts.separator 'Required:'
+
+      opts.on('-c', '--config-file [CONFIG_FILE]', 'Path to the configuration file') do |config_filepath|
+        options[:config_filepath] = config_filepath
+      end
+
+      opts.separator 'Optional:'
+
+      opts.on('-t', '--get-token', 'Get the Dropbox token') do
+        options[:get_token] = true
+      end
+
+      opts.separator 'Common:'
+
+      opts.on_tail('-h', '--help', 'Show this message') do
+        puts opts
+        exit
+      end
+
+      opts.on_tail('-v', '--version', 'Show version') do
+        puts MotionVj::VERSION
+        exit
+      end
+    end
+
+    begin
+      opt_parser.parse!(argv)
+    rescue OptionParser::InvalidOption => e
+      $stderr.puts 'Invalid option.'
+      abort opt_parser.to_s
+    end
+
+    if options[:config_filepath].nil? || options[:config_filepath].to_s.strip.empty?
+      $stderr.puts 'The configuration file is required.'
+      abort opt_parser.to_s
+    end
+
+    options
+  end
+
+  def self.start(options)
+    Dotenv.load(options[:config_filepath])
+    self.check_config
+
+    trap('INT') do
+      self.remove_pid_file
+      exit 2
+    end
+
+    self.create_pid_file
+
+    if options[:get_token]
+      MotionVj.get_dropbox_token(self.get_env('DP_APP_KEY'), self.get_env('DP_APP_SECRET'))
+    else
+      MotionVj.start(get_env('DP_APP_TOKEN'))
+      sleep
+    end
+  end
+
+  private
+
+  def self.check_config
+    %w( MOTION_CMD VIDEOS_DIR VIDEO_EXTENTION PID_FILE DB_VIDEOS_DIR ).each { |key| self.get_env(key) }
+  end
+
+  def self.get_env(key)
+    value = ENV[key]
+    abort "The environment variable '#{key}' is blank or defined." if value.to_s.strip.empty?
+    value
+  end
+
+  def self.read_pid
+    pid = nil
+    if File.exist?(ENV['PID_FILE'])
+      File.open(ENV['PID_FILE'], 'r') do |f|
+        pid = f.gets.to_i rescue nil
+      end
+    end
+    pid
+  end
+
+  def self.create_pid_file
+    pid = self.read_pid
+    if pid && !pid.zero?
+      pid_exist = !!Process.kill(0, pid) rescue false
+      abort "motionvj is already running. Please check the PID in '#{ENV['PID_FILE']}'." if pid_exist
+    end
+
+    File.open(ENV['PID_FILE'], 'w') do |f|
+      f.puts Process.pid
+    end
+  end
+
+  def self.remove_pid_file
+    pid = self.read_pid
+    FileUtils.rm_f(ENV['PID_FILE']) if pid && pid === Process.pid
+  end
+end
+
+options = App.parse!(ARGV)
+App.start(options)
