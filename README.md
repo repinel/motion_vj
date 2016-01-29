@@ -1,28 +1,29 @@
 # MotionVj
 
-Welcome to your new gem! In this directory, you'll find the files you need to be able to package up your Ruby library into a gem. Put your Ruby code in the file `lib/motion_vj`. To experiment with that code, run `bin/console` for an interactive prompt.
-
-TODO: Delete this and the text above, and describe your gem
+This gem uploads [motion](http://www.lavrsen.dk/foswiki/bin/view/Motion/WebHome) videos to Dropbox.
 
 ## Installation
 
-Add this line to your application's Gemfile:
-
-```ruby
-gem 'motion_vj'
-```
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
+Install the gem and make the executable available:
 
     $ gem install motion_vj
 
 ## Usage
 
-TODO: Write usage instructions here
+Once installed, a Dropbox token is needed to start. Run `motionvj --get-token` and follow the instructions.
+
+For more details, run `motionvj --help`:
+
+```
+Usage: motionvj [options]
+Required:
+    -c, --config-file [CONFIG_FILE]  Path to the configuration file
+Optional:
+    -t, --get-token                  Get the Dropbox token
+Common:
+    -h, --help                       Show this message
+    -v, --version                    Show version
+```
 
 ## Development
 
@@ -32,8 +33,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/motion_vj. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](contributor-covenant.org) code of conduct.
-
+Bug reports and pull requests are welcome on GitHub at https://github.com/repinel/motion_vj. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](contributor-covenant.org) code of conduct.
 
 ## License
 
