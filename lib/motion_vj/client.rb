@@ -2,15 +2,16 @@ require 'dropbox_sdk'
 
 module MotionVj
   class Client
-    attr_reader :db_client
+    attr_reader :db_client, :videos_dir
 
-    def initialize(token)
+    def initialize(token, videos_dir)
       @db_client = DropboxClient.new(token)
+      @videos_dir = videos_dir
     end
 
     def file_exist?(filename)
       begin
-        metadata = db_client.metadata(File.join(ENV['DB_VIDEOS_DIR'], filename))
+        metadata = self.db_client.metadata(File.join(self.videos_dir, filename))
         metadata && !metadata['is_dir'] && metadata['bytes'] && metadata['bytes'] > 0
       rescue DropboxError => e
         false
@@ -19,7 +20,7 @@ module MotionVj
 
     def upload(filepath)
       open(filepath) do |file|
-        metadata = db_client.put_file(File.join(ENV['DB_VIDEOS_DIR'], File.basename(filepath)), file, true)
+        metadata = self.db_client.put_file(File.join(self.videos_dir, File.basename(filepath)), file, true)
         metadata && !metadata['is_dir'] && metadata['bytes'] && metadata['bytes'] > 0
       end
     end
@@ -28,7 +29,7 @@ module MotionVj
       flow = DropboxOAuth2FlowNoRedirect.new(app_key, app_secret)
       authorize_url = flow.start
 
-      puts "1. Go to: #{authorize_url}"
+      puts "1. Go to: #{ authorize_url }"
       puts '2. Click "Allow" (you might have to log in first)'
       puts '3. Copy the authorization code'
       print 'Enter the authorization code here: '

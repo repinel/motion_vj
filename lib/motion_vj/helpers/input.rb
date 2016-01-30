@@ -5,7 +5,7 @@ module MotionVj
         loop do
           value = $stdin.gets.to_s.strip
           if value.empty?
-            print("Please provide a valid #{input_name}:")
+            print("Please provide a valid #{ input_name }: ")
           else
             return value  
           end

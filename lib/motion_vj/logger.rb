@@ -11,7 +11,7 @@ module MotionVj
     private
 
     def self.format(msg, type)
-      "[motionvj][#{Time.now.utc.strftime("%Y-%m-%d %H:%M:%S %Z")}][#{type}]: #{msg}"
+      "[motionvj][#{ Time.now.utc.strftime("%Y-%m-%d %H:%M:%S %Z") }][#{ type }]: #{ msg }"
     end
   end
 end

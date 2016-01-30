@@ -8,6 +8,33 @@ Install the gem and make the executable available:
 
     $ gem install motion_vj
 
+## Configuration
+
+The configuration file should look like this:
+
+```yaml
+# config.yml
+
+# To obtain the app key and secret, go to https://www.dropbox.com/developers/apps/create
+db_app_key: <App key from Dropbox>
+db_app_secret: <App secret from Dropbox>
+# The token can be generated using `--get-token`. Please see the Usage section of the README.
+db_app_token: <App token from Dropbox>
+# The Dropbox directory where the files will be uploaded.
+db_videos_dir: /
+
+# The motion CLI name.
+motion_cmd: motion
+# Path to the PID file that will be created when running.
+pid_file: /Users/roque/tmp_motion/run/motionvj.pid
+# Directory where motion save the videos.
+videos_dir: /Users/roque/tmp_motion/videos
+# Extension of the videos that should be uploaded.
+videos_extension: avi
+```
+
+You must provide it using the `--config-file` option. Please see it on the next section.
+
 ## Usage
 
 Once installed, a Dropbox token is needed to start. Run `motionvj --get-token` and follow the instructions.

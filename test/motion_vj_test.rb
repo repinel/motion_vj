@@ -2,8 +2,8 @@ require 'test_helper'
 
 class MotionVjTest < Minitest::Test
   def setup
-    ENV['MOTION_CMD'] = 'motion'
     @fake_token = 'fake1234'
+    @fake_db_videos_dir = 'my_app_videos'
   end
 
   def test_gem_version_number
@@ -12,7 +12,7 @@ class MotionVjTest < Minitest::Test
 
   def test_gets_dropbox_token
     mock = MiniTest::Mock.new.expect(:call, @fake_token, ['foo', 'bar'])
-    assert_output "Your Dropbox access token for this app is: #{@fake_token}\n" do
+    assert_output "Your Dropbox access token for this app is: #{ @fake_token }\n" do
       MotionVj::Client.stub :get_token, mock do
         MotionVj.get_dropbox_token('foo', 'bar')
       end
@@ -27,11 +27,15 @@ class MotionVjTest < Minitest::Test
       client_mock = MiniTest::Mock.new
       client_mock.expect(:file_exist?, false, [file_basename])
       client_mock.expect(:upload, true, [tmpfile])
-      new_client_mock = MiniTest::Mock.new.expect(:call, client_mock, [@fake_token])
+      new_client_mock = MiniTest::Mock.new.expect(:call, client_mock, [@fake_token, @fake_db_videos_dir])
 
-      assert_output /'#{Regexp.escape file_basename}' was uploaded\./, '' do
+      assert_output /'#{ Regexp.escape(file_basename) }' was uploaded\./, '' do
         MotionVj::Client.stub :new, new_client_mock do
-          MotionVj.start(@fake_token)
+          MotionVj.start(db_app_token:     @fake_token,
+                         db_videos_dir:    @fake_db_videos_dir,
+                         motion_cmd:       'motion',
+                         videos_dir:       tmpdir,
+                         videos_extension: extension(tmpfile))
           wait
           FileUtils.touch(tmpfile)
           wait
@@ -52,11 +56,15 @@ class MotionVjTest < Minitest::Test
       client_mock = MiniTest::Mock.new
       client_mock.expect(:file_exist?, false, [file_basename])
       client_mock.expect(:upload, false, [tmpfile])
-      new_client_mock = MiniTest::Mock.new.expect(:call, client_mock, [@fake_token])
+      new_client_mock = MiniTest::Mock.new.expect(:call, client_mock, [@fake_token, @fake_db_videos_dir])
 
-      assert_output '', /Could not upload '#{Regexp.escape file_basename}'\./ do
+      assert_output '', /Could not upload '#{ Regexp.escape (file_basename) }'\./ do
         MotionVj::Client.stub :new, new_client_mock do
-          MotionVj.start(@fake_token)
+          MotionVj.start(db_app_token:     @fake_token,
+                         db_videos_dir:    @fake_db_videos_dir,
+                         motion_cmd:       'motion',
+                         videos_dir:       tmpdir,
+                         videos_extension: extension(tmpfile))
           wait
           FileUtils.touch(tmpfile)
           wait
@@ -79,11 +87,15 @@ class MotionVjTest < Minitest::Test
       client_mock.expect(:upload, nil) do
         raise 'upload failed'
       end
-      new_client_mock = MiniTest::Mock.new.expect(:call, client_mock, [@fake_token])
+      new_client_mock = MiniTest::Mock.new.expect(:call, client_mock, [@fake_token, @fake_db_videos_dir])
 
-      assert_output '', /Could not upload '#{Regexp.escape file_basename}'\./ do
+      assert_output '', /Could not upload '#{ Regexp.escape(file_basename) }'\./ do
         MotionVj::Client.stub :new, new_client_mock do
-          MotionVj.start(@fake_token)
+          MotionVj.start(db_app_token:     @fake_token,
+                         db_videos_dir:    @fake_db_videos_dir,
+                         motion_cmd:       'motion',
+                         videos_dir:       tmpdir,
+                         videos_extension: extension(tmpfile))
           wait
           FileUtils.touch(tmpfile)
           wait
@@ -103,11 +115,15 @@ class MotionVjTest < Minitest::Test
 
       client_mock = MiniTest::Mock.new
       client_mock.expect(:file_exist?, true, [file_basename])
-      new_client_mock = MiniTest::Mock.new.expect(:call, client_mock, [@fake_token])
+      new_client_mock = MiniTest::Mock.new.expect(:call, client_mock, [@fake_token, @fake_db_videos_dir])
 
       assert_output '', '' do
         MotionVj::Client.stub :new, new_client_mock do
-          MotionVj.start(@fake_token)
+          MotionVj.start(db_app_token:     @fake_token,
+                         db_videos_dir:    @fake_db_videos_dir,
+                         motion_cmd:       'motion',
+                         videos_dir:       tmpdir,
+                         videos_extension: extension(tmpfile))
           wait
           FileUtils.touch(tmpfile)
           wait
@@ -122,13 +138,40 @@ class MotionVjTest < Minitest::Test
   end
 
   def test_ignores_some_modified_files
+    create_tmpdir do |tmpdir, tmpfile|
+      file_basename = File.basename tmpfile
 
+      client_mock = MiniTest::Mock.new
+      new_client_mock = MiniTest::Mock.new
+
+      assert_output '', '' do
+        MotionVj::Client.stub :new, new_client_mock do
+          MotionVj.start(db_app_token:     @fake_token,
+                         db_videos_dir:    @fake_db_videos_dir,
+                         motion_cmd:       'motion',
+                         videos_dir:       tmpdir,
+                         videos_extension: 'avi')
+          wait
+          FileUtils.touch(tmpfile)
+          wait
+        end
+      end
+
+      assert File.exist?(tmpfile), 'file must not be deleted when not uploaded'
+
+      client_mock.verify
+      new_client_mock.verify
+    end
   end
 
   def test_logs_when_file_deleted
     create_tmpdir do |tmpdir, tmpfile|
-      assert_output /'#{Regexp.escape File.basename(tmpfile)}' deleted\./, '' do
-        MotionVj.start(@fake_token)
+      assert_output /'#{ Regexp.escape(File.basename(tmpfile)) }' deleted\./, '' do
+        MotionVj.start(db_app_token:     @fake_token,
+                       db_videos_dir:    @fake_db_videos_dir,
+                       motion_cmd:       'motion',
+                       videos_dir:       tmpdir,
+                       videos_extension: extension(tmpfile))
         wait
         FileUtils.rm_f(tmpfile)
         wait
@@ -138,10 +181,12 @@ class MotionVjTest < Minitest::Test
 
   def test_ignores_some_deleted_files
     create_tmpdir do |tmpdir, tmpfile|
-      ENV['VIDEO_EXTENTION'] = 'avi'
-
       assert_output '', '' do
-        MotionVj.start(@fake_token)
+        MotionVj.start(db_app_token:     @fake_token,
+                       db_videos_dir:    @fake_db_videos_dir,
+                       motion_cmd:       'motion',
+                       videos_dir:       tmpdir,
+                       videos_extension: 'avi')
         wait
         FileUtils.rm_f(tmpfile)
         wait
@@ -153,12 +198,8 @@ class MotionVjTest < Minitest::Test
 
   def create_tmpdir
     tmpdir = Dir.mktmpdir(nil, File.dirname(__FILE__))
-    tmpfile = "#{tmpdir}/foo.bar"
+    tmpfile = "#{ tmpdir }/foo.bar"
     FileUtils.touch(tmpfile)
-
-    ENV['VIDEOS_DIR'] = tmpdir
-    ENV['VIDEO_EXTENTION'] = 'bar'
-
     yield tmpdir, tmpfile
   ensure
     Listen.stop
@@ -167,5 +208,9 @@ class MotionVjTest < Minitest::Test
 
   def wait
     sleep 1
+  end
+
+  def extension(filename)
+    File.extname(filename).sub('.', '')
   end
 end

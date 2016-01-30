@@ -2,26 +2,36 @@
 
 require 'motion_vj'
 
-require 'dotenv'
 require 'fileutils'
 require 'optparse'
+require 'yaml'
 
 class App
-  def self.parse!(argv)
-    options = {}
+  attr_accessor :options, :config
+
+  def initialize(argv)
+    parse!(argv)
+    load_config!
+    start
+  end
+
+  private
+
+  def parse!(argv)
+    self.options = {}
     opt_parser = OptionParser.new do |opts|
       opts.banner = 'Usage: motionvj [options]'
 
       opts.separator 'Required:'
 
-      opts.on('-c', '--config-file [CONFIG_FILE]', 'Path to the configuration file') do |config_filepath|
-        options[:config_filepath] = config_filepath
+      opts.on('-c', '--config-file [CONFIG_YAML_FILE]', 'Path to the configuration YAML file') do |config_filepath|
+        self.options[:config_filepath] = config_filepath
       end
 
       opts.separator 'Optional:'
 
       opts.on('-t', '--get-token', 'Get the Dropbox token') do
-        options[:get_token] = true
+        self.options[:get_token] = true
       end
 
       opts.separator 'Common:'
@@ -44,72 +54,70 @@ class App
       abort opt_parser.to_s
     end
 
-    if options[:config_filepath].nil? || options[:config_filepath].to_s.strip.empty?
-      $stderr.puts 'The configuration file is required.'
+    if self.options[:config_filepath].nil? || self.options[:config_filepath].to_s.strip.empty?
+      $stderr.puts 'The configuration YAML file is required.'
       abort opt_parser.to_s
     end
-
-    options
   end
 
-  def self.start(options)
-    Dotenv.load(options[:config_filepath])
-    self.check_config
+  def load_config!
+    self.config = YAML.load_file(self.options[:config_filepath])
+    blank_config_msg = %w( db_videos_dir motion_cmd pid_file videos_dir videos_extension ).map { |key|
+      key if /\A[[:space:]]*\z/ === self.config[key].to_s
+    }.compact
+    abort "The following configuration options are missing:\n#{ blank_config_msg.join("\n") }" unless blank_config_msg.empty?
+  rescue Errno::ENOENT
+    abort "Could not open the configuration file: #{ self.options[:config_filepath] }"
+  end
 
+  def start
     trap('INT') do
-      self.remove_pid_file
+      remove_pid_file
       exit 2
     end
 
-    self.create_pid_file
+    create_pid_file
 
     if options[:get_token]
-      MotionVj.get_dropbox_token(self.get_env('DP_APP_KEY'), self.get_env('DP_APP_SECRET'))
+      MotionVj.get_dropbox_token(self.config['db_app_key'], self.config['db_app_secret'])
     else
-      MotionVj.start(get_env('DP_APP_TOKEN'))
+      MotionVj.start(db_app_token:     self.config['db_app_token'],
+                     videos_dir:       self.config['videos_dir'],
+                     videos_extension: self.config['videos_extension'],
+                     motion_cmd:       self.config['motion_cmd'],
+                     db_videos_dir:    self.config['db_videos_dir'])
       sleep
     end
+  ensure
+    remove_pid_file
   end
 
-  private
-
-  def self.check_config
-    %w( MOTION_CMD VIDEOS_DIR VIDEO_EXTENTION PID_FILE DB_VIDEOS_DIR ).each { |key| self.get_env(key) }
-  end
-
-  def self.get_env(key)
-    value = ENV[key]
-    abort "The environment variable '#{key}' is blank or defined." if value.to_s.strip.empty?
-    value
-  end
-
-  def self.read_pid
+  def read_pid
     pid = nil
-    if File.exist?(ENV['PID_FILE'])
-      File.open(ENV['PID_FILE'], 'r') do |f|
+    if File.exist?(self.config['pid_file'])
+      File.open(self.config['pid_file'], 'r') do |f|
         pid = f.gets.to_i rescue nil
       end
     end
     pid
   end
 
-  def self.create_pid_file
-    pid = self.read_pid
+  def create_pid_file
+    pid = read_pid
     if pid && !pid.zero?
       pid_exist = !!Process.kill(0, pid) rescue false
-      abort "motionvj is already running. Please check the PID in '#{ENV['PID_FILE']}'." if pid_exist
+      abort "motionvj is already running. Please check the PID in '#{ self.config['pid_file'] }'." if pid_exist
     end
 
-    File.open(ENV['PID_FILE'], 'w') do |f|
+    File.open(self.config['pid_file'], 'w') do |f|
       f.puts Process.pid
     end
   end
 
-  def self.remove_pid_file
-    pid = self.read_pid
-    FileUtils.rm_f(ENV['PID_FILE']) if pid && pid === Process.pid
+  def remove_pid_file
+    pid = read_pid
+    FileUtils.rm_f(self.config['pid_file']) if pid && pid === Process.pid
   end
 end
 
-options = App.parse!(ARGV)
-App.start(options)
+App.new(ARGV)

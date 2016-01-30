@@ -10,7 +10,7 @@ class MotionVj::ClientTest < Minitest::Test
     @db_client_mock.expect(:metadata, nil) { raise DropboxError.new('foo') }
 
     DropboxClient.stub :new, @new_db_client_mock do
-      client = MotionVj::Client.new(@fake_token)
+      client = MotionVj::Client.new(@fake_token, 'my_app_videos')
       assert client.file_exist?('foo.bar')
       refute client.file_exist?('foo.bar')
       refute client.file_exist?('foo.bar')
@@ -23,7 +23,7 @@ class MotionVj::ClientTest < Minitest::Test
 
   def test_upload_is_successful_when_not_a_directory_and_not_empty
     tmpdir = Dir.mktmpdir(nil, File.dirname(__FILE__))
-    tmpfile = "#{tmpdir}/foo.bar"
+    tmpfile = "#{ tmpdir }/foo.bar"
     FileUtils.touch(tmpfile)
 
     upload_ok = ->(filepath, file, overwrite) { 
@@ -37,7 +37,7 @@ class MotionVj::ClientTest < Minitest::Test
     @db_client_mock.expect(:put_file, nil) { raise DropboxError.new('foo') }
 
     DropboxClient.stub :new, @new_db_client_mock do
-      client = MotionVj::Client.new(@fake_token)
+      client = MotionVj::Client.new(@fake_token, 'my_app_videos')
       assert client.upload(tmpfile)
       refute client.upload(tmpfile)
       refute client.upload(tmpfile)
@@ -78,7 +78,6 @@ class MotionVj::ClientTest < Minitest::Test
   private
 
   def mock_db_client
-    ENV['DB_VIDEOS_DIR'] = 'my_app_videos'
     @fake_token = 'fake1234'
     @db_client_mock = MiniTest::Mock.new
     @new_db_client_mock = MiniTest::Mock.new.expect(:call, @db_client_mock, [@fake_token])
