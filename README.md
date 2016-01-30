@@ -26,9 +26,9 @@ db_videos_dir: /
 # The motion CLI name.
 motion_cmd: motion
 # Path to the PID file that will be created when running.
-pid_file: /Users/roque/tmp_motion/run/motionvj.pid
+pid_file: /var/run/motion/motion.pid
 # Directory where motion save the videos.
-videos_dir: /Users/roque/tmp_motion/videos
+videos_dir: /var/run/motion/videos
 # Extension of the videos that should be uploaded.
 videos_extension: avi
 ```
