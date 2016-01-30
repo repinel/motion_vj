@@ -1,5 +1,7 @@
 # MotionVj
 
+[![Gem Version](https://badge.fury.io/rb/motion_vj.svg)](https://badge.fury.io/rb/motion_vj) [![Build Status](https://travis-ci.org/repinel/motion_vj.svg?branch=master)](https://travis-ci.org/repinel/motion_vj)
+
 This gem uploads [motion](http://www.lavrsen.dk/foswiki/bin/view/Motion/WebHome) videos to Dropbox.
 
 ## Installation
