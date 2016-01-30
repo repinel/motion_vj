@@ -33,11 +33,11 @@ videos_dir: /var/run/motion/videos
 videos_extension: avi
 ```
 
-You must provide it using the `--config-file` option as pointed by the [Usage](#Usage) section.
+You must provide it using the `--config-file` option as pointed by the [Usage](#usage) section.
 
 ## Usage
 
-So that `motionvj` can access a Dropbox account, a Dropbox token needs to be created. This will be a one time action, and it can be acomplished running `motionvj --get-token --config-file config.yml`, where `config.yml` is the file detailed by the [Configuration](#Configuration) section of this README. Once the token is created, it should be added to the same configuration file.
+So that `motionvj` can access a Dropbox account, a Dropbox token needs to be created. This will be a one time action, and it can be acomplished running `motionvj --get-token --config-file config.yml`, where `config.yml` is the file detailed by the [Configuration](#configuration) section of this README. Once the token is created, it should be added to the same configuration file.
 
 To start uploading new videos, just run `motionvj --config-file config.yml`. This should upload new videos that end with the extension indicated by the configuration file. After a file is uploaded to Dropbox, it is then deleted from the local filesystem.
 
